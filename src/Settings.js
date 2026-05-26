@@ -11,7 +11,7 @@ const value = Object.seal({
     serverFrequency: 25,
     serverName: "A Sigmally Server", // OG: "An unnamed server"
     serverGamemode: "FFA",
-    serverPassword: "702",
+    serverPassword: "",
 
     chatEnabled: true,
     /** @type {string[]} */
