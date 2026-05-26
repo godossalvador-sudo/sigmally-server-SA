@@ -47,19 +47,19 @@ class SigmallyProtocol extends Protocol {
     onSocketMessage(reader) {
         const messageId = unshuffle[reader.readUInt8()];
         switch (messageId) {
-            case 0:
+            case 0: {
                 if (reader.length < 2)
                     return void this.connection.close();
 
                 let body;
-               try {
-    const bodyString = reader.readZTStringUTF8();
-    body = JSON.parse(bodyString);
-    console.log("BODY:", JSON.stringify(body));
-} catch (_) {
-    return void this.fail(1003, "Unexpected message format");
-}
+                try {
+                    const bodyString = reader.readZTStringUTF8();
+                    body = JSON.parse(bodyString);
+                    console.log("BODY:", JSON.stringify(body));
+                } catch (_) {
+                    return void this.fail(1003, "Unexpected message format");
                 }
+
                 if (
                     typeof body.name !== "string"
                     || (body.skin && typeof body.skin !== "string")
@@ -82,6 +82,7 @@ class SigmallyProtocol extends Protocol {
                     sub: !!body.sub,
                 };
                 break;
+            }
             case 16:
                 switch (reader.length) {
                     case 13:
@@ -127,21 +128,24 @@ class SigmallyProtocol extends Protocol {
                 if (!this.settings.minionEnableERTPControls) break;
                 this.connection.minionsFrozen = !this.connection.minionsFrozen;
                 break;
-            case 99:
+            case 99: {
                 if (reader.length < 2)
                     return void this.fail(1003, "Bad message format");
                 const flags = reader.readUInt8();
-                const skipLen = 2 * ((flags & 2) + (flags & 4) + (flags & 8))
+                const skipLen = 2 * ((flags & 2) + (flags & 4) + (flags & 8));
                 if (reader.length < 2 + skipLen)
                     return void this.fail(1003, "Unexpected message format");
                 reader.skip(skipLen);
                 const message = reader.readZTStringUTF8();
                 this.connection.onChatMessage(message);
                 break;
+            }
             case 0xbf:
                 // playtime quest
+                break;
             case 0xc0:
                 // food quest
+                break;
             case 0xd0:
                 // analytics
                 break;
@@ -234,26 +238,22 @@ class SigmallyProtocol extends Protocol {
                     const item = data[i];
                     writer.writeUInt32(item.highlighted ? 1 : 0);
                     writer.writeZTStringUTF8(item.name);
-
                     writer.writeUInt32(selfData?.position ?? 0);
                     writer.writeUInt32(item.sub);
                 }
                 break;
-
             case "pie":
                 writer.writeUInt8(shuffle[50]);
                 writer.writeUInt32(data.length);
                 for (let i = 0, l = data.length; i < l; i++)
                     writer.writeFloat32(data[i].weight);
                 break;
-
             case "text":
                 writer.writeUInt8(shuffle[48]);
                 writer.writeUInt32(data.length);
                 for (let i = 0, l = data.length; i < l; i++)
                     writer.writeZTStringUTF8(data[i]);
         }
-
         this.send(writer.finalize());
     }
 
@@ -270,7 +270,6 @@ class SigmallyProtocol extends Protocol {
     }
 
     /**
-     * @abstract
      * @param {Cell[]} add
      * @param {Cell[]} upd
      * @param {Cell[]} eat
@@ -311,17 +310,6 @@ class SigmallyProtocol extends Protocol {
 
 module.exports = SigmallyProtocol;
 
-/**
- * @param {Writer} writer
- * @param {Player} source
- * @param {Cell} cell
- * @param {boolean} includeType
- * @param {boolean} includeSize
- * @param {boolean} includePos
- * @param {boolean} includeColor
- * @param {boolean} includeName
- * @param {boolean} includeSkin
- */
 function writeCellData6(writer, source, cell, includeType, includeSize, includePos, includeColor, includeName, includeSkin) {
     writer.writeUInt32(cell.id);
     writer.writeInt16(cell.x);
@@ -337,10 +325,9 @@ function writeCellData6(writer, source, cell, includeType, includeSize, includeP
     if (cell.type === 3) flags |= 0x20;
     writer.writeUInt8(flags);
 
-    writer.writeUInt8(includeType ? 0 : 1); // isUpdate
-    writer.writeUInt8(cell.type !== -1 ? 1 : 0); // isPlayer
+    writer.writeUInt8(includeType ? 0 : 1);
+    writer.writeUInt8(cell.type !== -1 ? 1 : 0);
     writer.writeUInt8(cell.owner?.sub ? 1 : 0);
-    // only write clan on player cells, not ejected cells
     if (cell.owner?.clan && cell.type === 0) writer.writeZTStringUTF8(cell.owner.clan);
     else writer.writeUInt8(0);
 
