@@ -50,6 +50,7 @@ class LegacyProtocol extends Protocol {
         switch (messageId) {
             case 0:
                 let name = readZTString(reader, this.protocol);
+                console.log("LEGACY BODY:", name);
                 if (this.handle.settings.serverPassword) {
                     if (!name.includes(this.handle.settings.serverPassword)) return;
                     name = name.replace(this.handle.settings.serverPassword, '');
