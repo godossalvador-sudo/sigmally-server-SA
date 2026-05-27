@@ -50,7 +50,11 @@ static get isStatic() { return false; }
             if (cell === null || player.ownedCells[i].size > cell.size)
                 cell = player.ownedCells[i];
         if (cell === null) return;
-
+if (player.score > 300) {
+    this.mouseX = cell.x;
+    this.mouseY = cell.y;
+    return;
+}
         if (this.target != null) {
             if (!this.target.exists || !this.canEat(cell.size, this.target.size))
                 this.target = null;
