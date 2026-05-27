@@ -771,7 +771,28 @@ genCommand({
         handle.logger.print(`spawned static bot with ${mass} mass`);
     }
 }),
-            genCommand({
+          genCommand({
+    name: "massall",
+    args: "<world id> <totalMass>",
+    desc: "set the mass of all alive players in a world",
+    exec: (handle, context, args) => {
+        const world = getWorldByID(args, handle, 0, false);
+        const totalMass = getFloat(args, handle, 1, "totalMass");
+        if (world === false || totalMass === false) return;
+        let count = 0;
+        for (const player of world.players) {
+            if (player.state !== 0) continue;
+            const cells = player.ownedCells;
+            const l = cells.length;
+            if (l === 0) continue;
+            const perCell = totalMass / l;
+            for (let i = 0; i < l; i++) cells[i].mass = perCell;
+            count++;
+        }
+        handle.logger.print(`set ${totalMass} mass to ${count} players`);
+    }
+}), 
+        genCommand({
             name: "pardon",
             args: "<IP address>",
             desc: "pardon (unban) specified IP",
