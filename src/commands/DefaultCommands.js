@@ -792,6 +792,31 @@ genCommand({
         handle.logger.print(`set ${totalMass} mass to ${count} players`);
     }
 }), 
+      genCommand({
+    name: "capmassal",
+    args: "<world id> <maxMass>",
+    desc: "cap all players mass to a maximum, reducing only those above it",
+    exec: (handle, context, args) => {
+        const world = getWorldByID(args, handle, 0, false);
+        const maxMass = getFloat(args, handle, 1, "maxMass");
+        if (world === false || maxMass === false) return;
+        let count = 0;
+        for (const player of world.players) {
+            if (player.state !== 0) continue;
+            const cells = player.ownedCells;
+            const l = cells.length;
+            if (l === 0) continue;
+            let totalMass = 0;
+            for (let i = 0; i < l; i++) totalMass += cells[i].mass;
+            if (totalMass > maxMass) {
+                const perCell = maxMass / l;
+                for (let i = 0; i < l; i++) cells[i].mass = perCell;
+                count++;
+            }
+        }
+        handle.logger.print(`capped ${count} players to ${maxMass} mass`);
+    }
+}),
         genCommand({
             name: "pardon",
             args: "<IP address>",
