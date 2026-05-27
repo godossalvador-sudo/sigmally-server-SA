@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>God.io</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  font-family: 'Nunito', sans-serif;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ===== MENU ===== */
+#menu {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  flex-direction: column;
+}
+
+.menu-bg-cells {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-cell {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.08;
+  animation: bgFloat linear infinite;
+}
+
+@keyframes bgFloat {
+  0% { transform: translateY(110vh); }
+  100% { transform: translateY(-20vh); }
+}
+
+.menu-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+}
+
+.game-logo {
+  font-size: 5rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -2px;
+  margin-bottom: 4px;
+  text-shadow: 0 0 40px rgba(100,200,255,0.3);
+}
+
+.game-logo span { color: #4dd; }
+
+.game-tagline {
+  font-size: 0.75rem;
+  color: #555;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.menu-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 32px 28px;
+  backdrop-filter: blur(10px);
+}
+
+.menu-card input {
+  width: 100%;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+
+.menu-card input:focus { border-color: rgba(100,220,255,0.5); }
+.menu-card input::placeholder { color: #444; }
+
+.skin-label {
+  font-size: 0.7rem;
+  color: #555;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.skin-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.skin-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.skin-dot:hover { transform: scale(1.2); }
+.skin-dot.selected { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.4); }
+
+.btn-play {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #00ccff, #0088ff);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(0,150,255,0.4);
+  margin-bottom: 8px;
+}
+
+.btn-play:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,150,255,0.6); }
+.btn-play:active { transform: translateY(0); }
+
+.btn-spec {
+  width: 100%;
+  padding: 11px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #555;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-spec:hover { border-color: rgba(255,255,255,0.3); color: #aaa; }
+
+.server-status {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #444;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #44ff88;
+  box-shadow: 0 0 6px #44ff88;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ===== GAME ===== */
+#gameCanvas {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+
+/* HUD */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 10;
+}
+
+/* Leaderboard */
+#leaderboard {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 200px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 8px;
+  padding: 10px 0;
+  pointer-events: none;
+}
+
+.lb-title {
+  text-align: center;
+  font-size: 0.65rem;
+  color: #666;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 12px;
+}
+
+.lb-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 12px;
+  gap: 8px;
+}
+
+.lb-rank { font-size: 0.7rem; color: #555; width: 16px; text-align: right; flex-shrink: 0; }
+.lb-name { font-size: 0.8rem; color: #ddd; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.lb-mass { font-size: 0.75rem; color: #aaa; flex-shrink: 0; }
+.lb-item.me .lb-name { color: #fff; }
+.lb-item.me .lb-mass { color: #4dd; }
+
+/* Mass display */
+#massDisplay {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.7);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  letter-spacing: 1px;
+}
+
+/* FPS/PING */
+#stats {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 0.65rem;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+/* Chat */
+#chat {
+  position: absolute;
+  bottom: 50px;
+  left: 12px;
+  width: 260px;
+  pointer-events: none;
+}
+
+.chat-msg {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin-bottom: 2px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  animation: fadeMsg 8s forwards;
+}
+
+.chat-msg .chat-name { color: #fff; font-weight: 700; }
+
+@keyframes fadeMsg { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+#chatInput {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 260px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  outline: none;
+  display: none;
+  pointer-events: all;
+}
+
+/* Minimap */
+#minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 120px;
+  height: 120px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Death screen */
+#deathScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.death-title { font-size: 3rem; font-weight: 800; color: #fff; }
+.death-score { font-size: 1.2rem; color: #aaa; }
+.btn-respawn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #00ccff, #0088ff);
+  border: none; border-radius: 10px;
+  color: #fff; font-family: 'Nunito', sans-serif;
+  font-size: 1rem; font-weight: 800; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,150,255,0.4);
+  transition: all 0.2s;
+}
+.btn-respawn:hover { transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu">
+  <div class="menu-bg-cells" id="bgCells"></div>
+  <div class="menu-inner">
+    <div class="game-logo">God<span>.</span>io</div>
+    <div class="game-tagline">Servidor Privado • FFA • Sudamérica</div>
+    <div class="menu-card">
+      <input type="text" id="nameInput" placeholder="Tu nombre..." maxlength="16" autocomplete="off"/>
+      <div class="skin-label">Color de célula</div>
+      <div class="skin-grid" id="skinGrid"></div>
+      <button class="btn-play" onclick="startGame(false)">▶ &nbsp; JUGAR</button>
+      <button class="btn-spec" onclick="startGame(true)">👁 Entrar como espectador</button>
+      <div class="server-status">
+        <div class="status-dot"></div>
+        <span>God.io SA — Online</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="leaderboard">
+    <div class="lb-title">Leaderboard</div>
+    <div id="lbItems"></div>
+  </div>
+  <div id="massDisplay">0</div>
+  <div id="stats">FPS: 0 | PING: 0ms</div>
+  <div id="chat"></div>
+  <input type="text" id="chatInput" placeholder="Escribe un mensaje..." maxlength="64"/>
+  <canvas id="minimap"></canvas>
+</div>
+
+<!-- DEATH -->
+<div id="deathScreen">
+  <div class="death-title">¡Fuiste comido!</div>
+  <div class="death-score" id="deathScore">Masa: 0</div>
+  <button class="btn-respawn" onclick="respawn()">▶ Volver a jugar</button>
+  <button class="btn-spec" style="padding:10px 30px;background:transparent;border:1px solid #333;border-radius:8px;color:#555;font-family:Nunito,sans-serif;cursor:pointer;" onclick="goMenu()">Menú</button>
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const SERVER_URL = "wss://sigmally-server-sa-production.up.railway.app//sigmally.com";
+
+const CELL_COLORS = [
+  '#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c',
+  '#3498db','#9b59b6','#e91e63','#00bcd4','#8bc34a',
+  '#ff5722','#607d8b','#ffffff','#ff80ab','#69f0ae'
+];
+
+// ==================== STATE ====================
+let socket = null;
+let shuffle = null;
+let unshuffle = null;
+let playerCells = new Map();
+let allCells = new Map();
+let leaderboard = [];
+let chatMessages = [];
+let myIds = new Set();
+let viewX = 0, viewY = 0, viewScale = 1;
+let targetViewX = 0, targetViewY = 0, targetScale = 1;
+let mouseX = 0, mouseY = 0;
+let worldMinX = -7000, worldMinY = -7000, worldMaxX = 7000, worldMaxY = 7000;
+let selectedColor = CELL_COLORS[5];
+let playerName = '';
+let myScore = 0;
+let frameCount = 0, fps = 0, lastFpsTime = 0;
+let ping = 0, lastPingTime = 0;
+let connected = false;
+let spectating = false;
+let animFrame = null;
+let chatOpen = false;
+
+// ==================== CANVAS ====================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimap');
+const minimapCtx = minimapCanvas.getContext('2d');
+minimapCanvas.width = 120;
+minimapCanvas.height = 120;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ==================== MENU SETUP ====================
+const skinGrid = document.getElementById('skinGrid');
+CELL_COLORS.forEach(color => {
+  const dot = document.createElement('div');
+  dot.className = 'skin-dot';
+  dot.style.background = color;
+  if (color === selectedColor) dot.classList.add('selected');
+  dot.onclick = () => {
+    document.querySelectorAll('.skin-dot').forEach(d => d.classList.remove('selected'));
+    dot.classList.add('selected');
+    selectedColor = color;
+  };
+  skinGrid.appendChild(dot);
+});
+
+// BG floating cells
+const bgCells = document.getElementById('bgCells');
+CELL_COLORS.slice(0,8).forEach((color, i) => {
+  const el = document.createElement('div');
+  el.className = 'bg-cell';
+  const size = 80 + Math.random() * 200;
+  el.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${color};animation-duration:${15+Math.random()*20}s;animation-delay:${Math.random()*15}s;`;
+  bgCells.appendChild(el);
+});
+
+// ==================== NETWORK ====================
+function writeZTString(str) {
+  const enc = new TextEncoder().encode(str);
+  const buf = new Uint8Array(enc.length + 1);
+  buf.set(enc); buf[enc.length] = 0;
+  return buf;
+}
+
+function connect(name, spec) {
+  playerName = name;
+  spectating = spec;
+  socket = new WebSocket(SERVER_URL);
+  socket.binaryType = 'arraybuffer';
+  shuffle = null;
+
+  socket.onopen = () => {
+    const hs = writeZTString("SIG 0.0.1");
+    socket.send(hs.buffer);
+  };
+
+  socket.onmessage = (event) => {
+    const data = new DataView(event.data);
+    if (shuffle === null) {
+      let offset = 0;
+      while (data.getUint8(offset) !== 0) offset++;
+      offset++;
+      const shuffleBuf = new Uint8Array(event.data, offset, 256);
+      shuffle = shuffleBuf;
+      unshuffle = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) unshuffle[shuffle[i]] = i;
+      connected = true;
+      sendSpawn();
+      return;
+    }
+    handleMessage(event.data);
+  };
+
+  socket.onclose = () => { connected = false; };
+  socket.onerror = () => { connected = false; };
+}
+
+function sendSpawn() {
+  if (!shuffle) return;
+  const body = JSON.stringify({
+    name: playerName,
+    skin: '',
+    clan: '',
+    state: spectating ? 2 : 0,
+    password: ''
+  });
+  const bodyBytes = writeZTString(body);
+  const msg = new Uint8Array(1 + bodyBytes.length);
+  msg[0] = shuffle[0];
+  msg.set(bodyBytes, 1);
+  socket.send(msg.buffer);
+}
+
+function sendMouse() {
+  if (!shuffle || !socket || socket.readyState !== 1) return;
+  const worldMouseX = (mouseX - canvas.width/2) / viewScale + viewX;
+  const worldMouseY = (mouseY - canvas.height/2) / viewScale + viewY;
+  const msg = new DataView(new ArrayBuffer(9));
+  msg.setUint8(0, shuffle[16]);
+  msg.setInt16(1, Math.round(worldMouseX), true);
+  msg.setInt16(3, Math.round(worldMouseY), true);
+  socket.send(msg.buffer);
+}
+
+function sendSplit() {
+  if (!shuffle || !socket || socket.readyState !== 1) return;
+  const msg = new Uint8Array(1);
+  msg[0] = shuffle[17];
+  socket.send(msg.buffer);
+}
+
+function sendEject() {
+  if (!shuffle || !socket || socket.readyState !== 1) return;
+  const msg = new Uint8Array(1);
+  msg[0] = shuffle[21];
+  socket.send(msg.buffer);
+}
+
+function sendChat(text) {
+  if (!shuffle || !socket || socket.readyState !== 1) return;
+  const textBytes = writeZTString(text);
+  const msg = new Uint8Array(2 + textBytes.length);
+  msg[0] = shuffle[99];
+  msg[1] = 0;
+  msg.set(textBytes, 2);
+  socket.send(msg.buffer);
+}
+
+// ==================== MESSAGE HANDLER ====================
+function handleMessage(buffer) {
+  if (!unshuffle) return;
+  const view = new DataView(buffer);
+  if (buffer.byteLength === 0) return;
+
+  const msgId = unshuffle[view.getUint8(0)];
+
+  if (msgId === 0xb4) return; // wrong password
+
+  // Leaderboard FFA
+  if (msgId === unshuffle[shuffle[49]]) {
+    leaderboard = [];
+    let offset = 1;
+    const count = view.getUint32(offset, true); offset += 4;
+    for (let i = 0; i < count && offset < buffer.byteLength - 4; i++) {
+      const highlighted = view.getUint32(offset, true); offset += 4;
+      let name = '';
+      while (offset < buffer.byteLength && view.getUint8(offset) !== 0) {
+        name += String.fromCharCode(view.getUint8(offset)); offset++;
+      }
+      offset++; // null
+      const pos = view.getUint32(offset, true); offset += 4;
+      const sub = view.getUint32(offset, true); offset += 4;
+      leaderboard.push({ name: name || 'Sin nombre', highlighted: !!highlighted });
+    }
+    updateLeaderboardUI();
+    return;
+  }
+
+  // World bounds
+  if (msgId === unshuffle[shuffle[64]]) {
+    let offset = 1;
+    worldMinX = view.getFloat64(offset, true); offset += 8;
+    worldMinY = view.getFloat64(offset, true); offset += 8;
+    worldMaxX = view.getFloat64(offset, true); offset += 8;
+    worldMaxY = view.getFloat64(offset, true); offset += 8;
+    return;
+  }
+
+  // New owned cell
+  if (msgId === unshuffle[shuffle[32]]) {
+    const cellId = view.getUint32(1, true);
+    myIds.add(cellId);
+    return;
+  }
+
+  // World reset
+  if (msgId === unshuffle[shuffle[18]]) {
+    allCells.clear(); myIds.clear(); myScore = 0;
+    return;
+  }
+
+  // Spectate position
+  if (msgId === unshuffle[shuffle[17]]) {
+    if (buffer.byteLength >= 13) {
+      targetViewX = view.getFloat32(1, true);
+      targetViewY = view.getFloat32(5, true);
+      targetScale = view.getFloat32(9, true);
+    }
+    return;
+  }
+
+  // Chat
+  if (msgId === unshuffle[shuffle[99]]) {
+    try {
+      let offset = 1;
+      const flags = view.getUint8(offset); offset++;
+      const r = view.getUint8(offset); offset++;
+      const g = view.getUint8(offset); offset++;
+      const b = view.getUint8(offset); offset++;
+      let name = '';
+      while (offset < buffer.byteLength && view.getUint8(offset) !== 0) { name += String.fromCharCode(view.getUint8(offset)); offset++; }
+      offset++;
+      let msg = '';
+      while (offset < buffer.byteLength && view.getUint8(offset) !== 0) { msg += String.fromCharCode(view.getUint8(offset)); offset++; }
+      addChatMessage(name || 'Servidor', msg, `rgb(${r},${g},${b})`);
+    } catch(e) {}
+    return;
+  }
+
+  // Cell update (msgId 16)
+  if (msgId === unshuffle[shuffle[16]]) {
+    parseUpdate(buffer);
+    return;
+  }
+}
+
+function parseUpdate(buffer) {
+  const view = new DataView(buffer);
+  let offset = 1;
+
+  // Eaten cells
+  const eatCount = view.getUint16(offset, true); offset += 2;
+  for (let i = 0; i < eatCount; i++) {
+    const eaterId = view.getUint32(offset, true); offset += 4;
+    const eatenId = view.getUint32(offset, true); offset += 4;
+    allCells.delete(eatenId);
+    myIds.delete(eatenId);
+  }
+
+  // Updated/added cells
+  while (offset + 4 <= buffer.byteLength) {
+    const cellId = view.getUint32(offset, true); offset += 4;
+    if (cellId === 0) break;
+
+    if (offset + 10 > buffer.byteLength) break;
+    const x = view.getInt16(offset, true); offset += 2;
+    const y = view.getInt16(offset, true); offset += 2;
+    const size = view.getUint16(offset, true); offset += 2;
+    const flags = view.getUint8(offset); offset++;
+    const isUpdate = view.getUint8(offset); offset++;
+    const isPlayer = view.getUint8(offset); offset++;
+    const isSub = view.getUint8(offset); offset++;
+
+    // clan (skip)
+    let clan = '';
+    while (offset < buffer.byteLength && view.getUint8(offset) !== 0) { clan += String.fromCharCode(view.getUint8(offset)); offset++; }
+    offset++;
+
+    let color = null;
+    if (flags & 0x02) {
+      if (offset + 3 <= buffer.byteLength) {
+        const r = view.getUint8(offset); offset++;
+        const g = view.getUint8(offset); offset++;
+        const b = view.getUint8(offset); offset++;
+        color = `rgb(${r},${g},${b})`;
+      }
+    }
+
+    let skin = '';
+    if (flags & 0x04) {
+      while (offset < buffer.byteLength && view.getUint8(offset) !== 0) { skin += String.fromCharCode(view.getUint8(offset)); offset++; }
+      offset++;
+    }
+
+    let name = '';
+    if (flags & 0x08) {
+      while (offset < buffer.byteLength && view.getUint8(offset) !== 0) { name += String.fromCharCode(view.getUint8(offset)); offset++; }
+      offset++;
+    }
+
+    const existing = allCells.get(cellId);
+    if (existing) {
+      existing.nx = x; existing.ny = y; existing.size = size;
+      if (color) existing.color = color;
+      if (name) existing.name = name;
+    } else {
+      allCells.set(cellId, {
+        id: cellId, x, y, nx: x, ny: y, size,
+        color: color || randomColor(),
+        name: name || '',
+        skin,
+        isSpiked: !!(flags & 0x01),
+        isAgitated: !!(flags & 0x10)
+      });
+    }
+  }
+
+  // Deleted cells
+  if (offset + 2 <= buffer.byteLength) {
+    const delCount = view.getUint16(offset, true); offset += 2;
+    for (let i = 0; i < delCount && offset + 4 <= buffer.byteLength; i++) {
+      const id = view.getUint32(offset, true); offset += 4;
+      allCells.delete(id);
+      myIds.delete(id);
+    }
+  }
+
+  // Check death
+  if (myIds.size === 0 && connected && !spectating && myScore > 0) {
+    showDeath();
+  }
+
+  updateMyScore();
+}
+
+function randomColor() {
+  return CELL_COLORS[Math.floor(Math.random() * CELL_COLORS.length)];
+}
+
+// ==================== RENDER ====================
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function render() {
+  const now = performance.now();
+  frameCount++;
+  if (now - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+    document.getElementById('stats').textContent = `FPS: ${fps} | PING: ${ping}ms`;
+  }
+
+  // Lerp view
+  if (myIds.size > 0) {
+    let cx = 0, cy = 0, totalSize = 0;
+    for (const id of myIds) {
+      const cell = allCells.get(id);
+      if (cell) { cell.x = lerp(cell.x, cell.nx, 0.2); cell.y = lerp(cell.y, cell.ny, 0.2); cx += cell.x; cy += cell.y; totalSize += cell.size; }
+    }
+    targetViewX = cx / myIds.size;
+    targetViewY = cy / myIds.size;
+    const avgSize = totalSize / myIds.size;
+    targetScale = Math.max(0.02, Math.min(2, 64 / avgSize));
+  }
+
+  // Lerp other cells
+  for (const [id, cell] of allCells) {
+    if (!myIds.has(id)) { cell.x = lerp(cell.x, cell.nx, 0.15); cell.y = lerp(cell.y, cell.ny, 0.15); }
+  }
+
+  viewX = lerp(viewX, targetViewX, 0.1);
+  viewY = lerp(viewY, targetViewY, 0.1);
+  viewScale = lerp(viewScale, targetScale, 0.1);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid
+  drawGrid();
+
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2);
+  ctx.scale(viewScale, viewScale);
+  ctx.translate(-viewX, -viewY);
+
+  // Sort cells by size
+  const sorted = [...allCells.values()].sort((a,b) => a.size - b.size);
+
+  for (const cell of sorted) {
+    drawCell(cell);
+  }
+
+  ctx.restore();
+
+  // Minimap
+  drawMinimap();
+
+  sendMouse();
+  animFrame = requestAnimationFrame(render);
+}
+
+function drawGrid() {
+  const gridSize = 40 * viewScale;
+  if (gridSize < 8) return;
+  const offsetX = ((canvas.width/2 - viewX * viewScale) % gridSize + gridSize) % gridSize;
+  const offsetY = ((canvas.height/2 - viewY * viewScale) % gridSize + gridSize) % gridSize;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = offsetX; x < canvas.width; x += gridSize) {
+    ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+  }
+  for (let y = offsetY; y < canvas.height; y += gridSize) {
+    ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+  }
+  ctx.stroke();
+}
+
+function drawCell(cell) {
+  const { x, y, size, color, name, isSpiked, isAgitated } = cell;
+  const isMe = myIds.has(cell.id);
+  const r = size;
+
+  ctx.save();
+
+  // Shadow for depth (Ryuten style)
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = r * 0.3;
+  ctx.shadowOffsetX = r * 0.05;
+  ctx.shadowOffsetY = r * 0.08;
+
+  // Main circle
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+
+  // Gradient (Ryuten shading)
+  const grad = ctx.createRadialGradient(x - r*0.3, y - r*0.3, r*0.1, x, y, r);
+  grad.addColorStop(0, lightenColor(color, 40));
+  grad.addColorStop(0.5, color);
+  grad.addColorStop(1, darkenColor(color, 30));
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Border
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = isMe ? 'rgba(255,255,255,0.4)' : darkenColor(color, 40);
+  ctx.lineWidth = Math.max(1, r * 0.04);
+  ctx.stroke();
+
+  // Name
+  if (name && r > 15) {
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    const fontSize = Math.max(10, Math.min(r * 0.35, 32));
+    ctx.font = `700 ${fontSize}px Nunito, sans-serif`;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.length > 12 ? name.substring(0,12)+'…' : name, x, y);
+
+    // Mass under name
+    if (r > 25) {
+      const mass = Math.round(cell.size * cell.size / 100);
+      ctx.font = `600 ${fontSize * 0.6}px Nunito, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(formatMass(mass), x, y + fontSize * 0.7);
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawMinimap() {
+  const mw = 120, mh = 120;
+  const worldW = worldMaxX - worldMinX;
+  const worldH = worldMaxY - worldMinY;
+  minimapCtx.clearRect(0, 0, mw, mh);
+  minimapCtx.fillStyle = 'rgba(0,0,0,0.6)';
+  minimapCtx.fillRect(0, 0, mw, mh);
+
+  for (const cell of allCells.values()) {
+    const mx = (cell.x - worldMinX) / worldW * mw;
+    const my = (cell.y - worldMinY) / worldH * mh;
+    const mr = Math.max(1.5, cell.size / worldW * mw * 3);
+    minimapCtx.beginPath();
+    minimapCtx.arc(mx, my, mr, 0, Math.PI * 2);
+    minimapCtx.fillStyle = myIds.has(cell.id) ? '#fff' : cell.color;
+    minimapCtx.fill();
+  }
+
+  // Viewport rect
+  const vx1 = (viewX - canvas.width/2/viewScale - worldMinX) / worldW * mw;
+  const vy1 = (viewY - canvas.height/2/viewScale - worldMinY) / worldH * mh;
+  const vx2 = (viewX + canvas.width/2/viewScale - worldMinX) / worldW * mw;
+  const vy2 = (viewY + canvas.height/2/viewScale - worldMinY) / worldH * mh;
+  minimapCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+  minimapCtx.lineWidth = 1;
+  minimapCtx.strokeRect(vx1, vy1, vx2-vx1, vy2-vy1);
+}
+
+// ==================== HELPERS ====================
+function lightenColor(hex, amount) {
+  return adjustColor(hex, amount);
+}
+function darkenColor(hex, amount) {
+  return adjustColor(hex, -amount);
+}
+function adjustColor(color, amount) {
+  if (color.startsWith('rgb')) {
+    const m = color.match(/\d+/g);
+    if (!m) return color;
+    const r = Math.max(0,Math.min(255,parseInt(m[0])+amount));
+    const g = Math.max(0,Math.min(255,parseInt(m[1])+amount));
+    const b = Math.max(0,Math.min(255,parseInt(m[2])+amount));
+    return `rgb(${r},${g},${b})`;
+  }
+  if (!color.startsWith('#')) return color;
+  let r = parseInt(color.slice(1,3),16);
+  let g = parseInt(color.slice(3,5),16);
+  let b = parseInt(color.slice(5,7),16);
+  r = Math.max(0,Math.min(255,r+amount));
+  g = Math.max(0,Math.min(255,g+amount));
+  b = Math.max(0,Math.min(255,b+amount));
+  return `rgb(${r},${g},${b})`;
+}
+
+function formatMass(m) {
+  if (m >= 1000000) return (m/1000000).toFixed(1)+'M';
+  if (m >= 1000) return (m/1000).toFixed(1)+'k';
+  return m.toString();
+}
+
+function updateMyScore() {
+  let total = 0;
+  for (const id of myIds) {
+    const cell = allCells.get(id);
+    if (cell) total += cell.size * cell.size / 100;
+  }
+  myScore = Math.round(total);
+  document.getElementById('massDisplay').textContent = formatMass(myScore);
+}
+
+function updateLeaderboardUI() {
+  const container = document.getElementById('lbItems');
+  container.innerHTML = '';
+  leaderboard.slice(0,10).forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'lb-item' + (item.highlighted ? ' me' : '');
+    div.innerHTML = `<span class="lb-rank">${i+1}</span><span class="lb-name">${item.name || 'Sin nombre'}</span>`;
+    container.appendChild(div);
+  });
+}
+
+function addChatMessage(name, msg, color) {
+  const chat = document.getElementById('chat');
+  const el = document.createElement('div');
+  el.className = 'chat-msg';
+  el.innerHTML = `<span class="chat-name" style="color:${color}">${name}:</span> ${msg}`;
+  chat.appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 8000);
+  while (chat.children.length > 8) chat.removeChild(chat.firstChild);
+}
+
+// ==================== GAME FLOW ====================
+function startGame(spec) {
+  const name = document.getElementById('nameInput').value.trim() || 'Dios';
+  spectating = spec;
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('gameCanvas').style.display = 'block';
+  document.getElementById('hud').style.display = 'block';
+  myIds.clear(); allCells.clear(); myScore = 0;
+  viewX = 0; viewY = 0; viewScale = 1;
+  connect(name, spec);
+  if (animFrame) cancelAnimationFrame(animFrame);
+  render();
+}
+
+function respawn() {
+  document.getElementById('deathScreen').style.display = 'none';
+  myIds.clear(); myScore = 0;
+  sendSpawn();
+}
+
+function goMenu() {
+  document.getElementById('deathScreen').style.display = 'none';
+  document.getElementById('gameCanvas').style.display = 'none';
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('menu').style.display = 'flex';
+  if (socket) socket.close();
+  if (animFrame) cancelAnimationFrame(animFrame);
+  allCells.clear(); myIds.clear();
+}
+
+function showDeath() {
+  document.getElementById('deathScreen').style.display = 'flex';
+  document.getElementById('deathScore').textContent = `Masa máxima: ${formatMass(myScore)}`;
+}
+
+// ==================== INPUT ====================
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  mouseX = e.touches[0].clientX;
+  mouseY = e.touches[0].clientY;
+}, { passive: false });
+
+document.addEventListener('keydown', e => {
+  if (chatOpen) {
+    if (e.key === 'Enter') {
+      const inp = document.getElementById('chatInput');
+      if (inp.value.trim()) sendChat(inp.value.trim());
+      inp.value = '';
+      inp.style.display = 'none';
+      chatOpen = false;
+    } else if (e.key === 'Escape') {
+      document.getElementById('chatInput').style.display = 'none';
+      chatOpen = false;
+    }
+    return;
+  }
+
+  if (e.key === ' ' || e.key === 'w' || e.key === 'W') {
+    e.preventDefault();
+    sendSplit();
+  }
+  if (e.key === 'e' || e.key === 'E') sendEject();
+  if (e.key === 'Enter') {
+    if (document.getElementById('gameCanvas').style.display !== 'none') {
+      const inp = document.getElementById('chatInput');
+      inp.style.display = 'block';
+      inp.focus();
+      chatOpen = true;
+    }
+  }
+});
+
+document.addEventListener('mousedown', e => {
+  if (e.button === 0 && !chatOpen) sendSplit();
+  if (e.button === 2) sendEject();
+});
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body>
+</html>
