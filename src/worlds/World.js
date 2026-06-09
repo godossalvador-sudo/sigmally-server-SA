@@ -273,22 +273,6 @@ class World {
     }
     return this.getRandomPos(cellSize);
 }
-            }
-        }
-    }
-
-    if (this.settings.worldMultiboxSpawnNear && player) {
-        const multiboxPos = this.getMultiboxPos(player, cellSize);
-        if (multiboxPos) return multiboxPos;
-    }
-    let tries = this.settings.worldSafeSpawnTries;
-    while (--tries >= 0) {
-        const pos = this.getRandomPos(cellSize);
-        if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-            return pos;
-    }
-    return this.getRandomPos(cellSize);
-}
     /**
      * @param {Player} player
      * @param {number} cellSize
