@@ -212,11 +212,11 @@ class World {
                 const team = teamMatch[1].toUpperCase();
                 const b = this.border;
                 const corners = {
-                    'T1': { cx: b.x - b.w * 0.6, cy: b.y - b.h * 0.6 },
-                    'T2': { cx: b.x + b.w * 0.6, cy: b.y + b.h * 0.6 },
-                    'T3': { cx: b.x + b.w * 0.6, cy: b.y - b.h * 0.6 },
-                    'T4': { cx: b.x - b.w * 0.6, cy: b.y + b.h * 0.6 },
-                };
+    'T1': { cx: b.x - b.w * 0.85, cy: b.y - b.h * 0.85 }, // arriba izquierda extremo
+    'T2': { cx: b.x + b.w * 0.85, cy: b.y + b.h * 0.85 }, // abajo derecha extremo
+    'T3': { cx: b.x + b.w * 0.85, cy: b.y - b.h * 0.85 }, // arriba derecha extremo
+    'T4': { cx: b.x - b.w * 0.85, cy: b.y + b.h * 0.85 }, // abajo izquierda extremo
+};
                 const corner = corners[team];
                 if (corner) {
                     if (this.settings.worldMultiboxSpawnNear) {
@@ -246,8 +246,8 @@ class World {
                     let tries = this.settings.worldSafeSpawnTries;
                     while (--tries >= 0) {
                         const pos = {
-                            x: corner.cx + (Math.random() - 0.5) * b.w * 0.4,
-                            y: corner.cy + (Math.random() - 0.5) * b.h * 0.4
+                                x: corner.cx + (Math.random() - 0.5) * b.w * 0.15,
+    y: corner.cy + (Math.random() - 0.5) * b.h * 0.15
                         };
                         pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
                         pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
