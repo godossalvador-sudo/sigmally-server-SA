@@ -205,7 +205,6 @@ class World {
      * @returns {Point}
      */
     getSafeSpawnPos(cellSize, player) {
-    // Team spawn por prefijo T1/T2/T3/T4 en el nombre
     if (player && player.router && player.router.spawningAttributes) {
         const name = player.router.spawningAttributes.name || '';
         const teamMatch = name.match(/^(T1|T2|T3|T4)/i);
@@ -220,6 +219,33 @@ class World {
             };
             const corner = corners[team];
             if (corner) {
+                // Intentar spawn cerca del multibox DENTRO de la esquina del equipo
+                if (this.settings.worldMultiboxSpawnNear) {
+                    const ip = player.router.remoteAddress;
+                    const candidates = this.players.filter(p => {
+                        if (p === player || p.ownedCells.length === 0) return false;
+                        return !!(ip && ip !== '127.0.0.1' && p.router.remoteAddress === ip);
+                    });
+                    if (candidates.length > 0) {
+                        let tries = this.settings.worldSafeSpawnTries;
+                        while (--tries >= 0) {
+                            const other = candidates[~~(Math.random() * candidates.length)];
+                            const cell = other.ownedCells[~~(Math.random() * other.ownedCells.length)];
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = cell.size + cellSize + 60 + Math.random() * 10;
+                            const pos = {
+                                x: cell.x + Math.cos(angle) * dist,
+                                y: cell.y + Math.sin(angle) * dist
+                            };
+                            pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
+                            pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
+                            if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+                                return pos;
+                        }
+                    }
+                }
+
+                // Si no hay multibox, spawn en la esquina del equipo
                 let tries = this.settings.worldSafeSpawnTries;
                 while (--tries >= 0) {
                     const pos = {
@@ -231,6 +257,22 @@ class World {
                     if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
                         return pos;
                 }
+            }
+        }
+    }
+
+    if (this.settings.worldMultiboxSpawnNear && player) {
+        const multiboxPos = this.getMultiboxPos(player, cellSize);
+        if (multiboxPos) return multiboxPos;
+    }
+    let tries = this.settings.worldSafeSpawnTries;
+    while (--tries >= 0) {
+        const pos = this.getRandomPos(cellSize);
+        if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+            return pos;
+    }
+    return this.getRandomPos(cellSize);
+}
             }
         }
     }
