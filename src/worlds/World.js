@@ -206,7 +206,10 @@ class World {
      */
     getSafeSpawnPos(cellSize, player) {
         if (player && player.router && player.router.spawningAttributes) {
-            const name = player.router.spawningAttributes.name || '';
+            const name = (player.router.spawningAttributes && player.router.spawningAttributes.name) 
+    || (player.leaderboardName) 
+    || (player.cellName) 
+    || '';
             const teamMatch = name.match(/^[Tt](\d+)/);
             if (teamMatch) {
                 const teamNum = parseInt(teamMatch[1]); // T1=1, T2=2, T9=9, T22=22 etc
