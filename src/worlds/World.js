@@ -207,53 +207,64 @@ class World {
     getSafeSpawnPos(cellSize, player) {
         if (player && player.router && player.router.spawningAttributes) {
             const name = player.router.spawningAttributes.name || '';
-            const teamMatch = name.match(/^(T1|T2|T3|T4)/i);
+            const teamMatch = name.match(/^[Tt](\d+)/);
             if (teamMatch) {
-                const team = teamMatch[1].toUpperCase();
+                const teamNum = parseInt(teamMatch[1]); // T1=1, T2=2, T9=9, T22=22 etc
                 const b = this.border;
-                const corners = {
-    'T1': { cx: b.x - b.w * 0.85, cy: b.y - b.h * 0.85 }, // arriba izquierda extremo
-    'T2': { cx: b.x + b.w * 0.85, cy: b.y + b.h * 0.85 }, // abajo derecha extremo
-    'T3': { cx: b.x + b.w * 0.85, cy: b.y - b.h * 0.85 }, // arriba derecha extremo
-    'T4': { cx: b.x - b.w * 0.85, cy: b.y + b.h * 0.85 }, // abajo izquierda extremo
-};
-                const corner = corners[team];
-                if (corner) {
-                    if (this.settings.worldMultiboxSpawnNear) {
-                        const ip = player.router.remoteAddress;
-                        const candidates = this.players.filter(p => {
-                            if (p === player || p.ownedCells.length === 0) return false;
-                            return !!(ip && ip !== '127.0.0.1' && p.router.remoteAddress === ip);
-                        });
-                        if (candidates.length > 0) {
-                            let tries = this.settings.worldSafeSpawnTries;
-                            while (--tries >= 0) {
-                                const other = candidates[~~(Math.random() * candidates.length)];
-                                const cell = other.ownedCells[~~(Math.random() * other.ownedCells.length)];
-                                const angle = Math.random() * Math.PI * 2;
-                                const dist = cell.size + cellSize + 60 + Math.random() * 10;
-                                const pos = {
-                                    x: cell.x + Math.cos(angle) * dist,
-                                    y: cell.y + Math.sin(angle) * dist
-                                };
-                                pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
-                                pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
-                                if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-                                    return pos;
-                            }
+
+                // Dividir el mapa en cuadrícula 4x4 = 16 zonas máximo
+                // Cada equipo ocupa una celda de la cuadrícula según su número
+                const cols = 4;
+                const rows = 4;
+                const idx = (teamNum - 1) % (cols * rows); // 0-based, se repite si hay más de 16 equipos
+                const col = idx % cols;
+                const row = Math.floor(idx / cols);
+
+                // Tamaño de cada zona
+                const zoneW = (b.w * 2) / cols;
+                const zoneH = (b.h * 2) / rows;
+
+                // Centro de la zona de este equipo
+                const cx = (b.x - b.w) + zoneW * col + zoneW / 2;
+                const cy = (b.y - b.h) + zoneH * row + zoneH / 2;
+
+                // Primero intentar spawn cerca del multibox dentro de la zona
+                if (this.settings.worldMultiboxSpawnNear) {
+                    const ip = player.router.remoteAddress;
+                    const candidates = this.players.filter(p => {
+                        if (p === player || p.ownedCells.length === 0) return false;
+                        return !!(ip && ip !== '127.0.0.1' && p.router.remoteAddress === ip);
+                    });
+                    if (candidates.length > 0) {
+                        let tries = this.settings.worldSafeSpawnTries;
+                        while (--tries >= 0) {
+                            const other = candidates[~~(Math.random() * candidates.length)];
+                            const cell = other.ownedCells[~~(Math.random() * other.ownedCells.length)];
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = cell.size + cellSize + 60 + Math.random() * 10;
+                            const pos = {
+                                x: cell.x + Math.cos(angle) * dist,
+                                y: cell.y + Math.sin(angle) * dist
+                            };
+                            pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
+                            pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
+                            if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+                                return pos;
                         }
                     }
-                    let tries = this.settings.worldSafeSpawnTries;
-                    while (--tries >= 0) {
-                        const pos = {
-                                x: corner.cx + (Math.random() - 0.5) * b.w * 0.15,
-    y: corner.cy + (Math.random() - 0.5) * b.h * 0.15
-                        };
-                        pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
-                        pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
-                        if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-                            return pos;
-                    }
+                }
+
+                // Spawn en la zona del equipo
+                let tries = this.settings.worldSafeSpawnTries;
+                while (--tries >= 0) {
+                    const pos = {
+                        x: cx + (Math.random() - 0.5) * zoneW * 0.8,
+                        y: cy + (Math.random() - 0.5) * zoneH * 0.8
+                    };
+                    pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
+                    pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
+                    if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+                        return pos;
                 }
             }
         }
