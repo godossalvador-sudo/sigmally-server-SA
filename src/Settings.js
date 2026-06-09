@@ -20,8 +20,8 @@ const value = Object.seal({
 
     worldMapX: 0,
     worldMapY: 0,
-    worldMapW: 17071, // OG: 7071
-    worldMapH: 17071, // OG: 7071
+    worldMapW: 10071, // OG: 7071
+    worldMapH: 10071, // OG: 7071
     worldFinderMaxLevel: 16,
     worldFinderMaxItems: 16,
     worldSafeSpawnTries: 64,
