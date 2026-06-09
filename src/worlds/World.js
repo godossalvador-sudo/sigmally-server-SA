@@ -205,18 +205,48 @@ class World {
      * @returns {Point}
      */
     getSafeSpawnPos(cellSize, player) {
-        if (this.settings.worldMultiboxSpawnNear && player) {
-            const multiboxPos = this.getMultiboxPos(player, cellSize);
-            if (multiboxPos) return multiboxPos;
+    // Team spawn por prefijo T1/T2/T3/T4 en el nombre
+    if (player && player.router && player.router.spawningAttributes) {
+        const name = player.router.spawningAttributes.name || '';
+        const teamMatch = name.match(/^(T1|T2|T3|T4)/i);
+        if (teamMatch) {
+            const team = teamMatch[1].toUpperCase();
+            const b = this.border;
+            const corners = {
+                'T1': { cx: b.x - b.w * 0.6, cy: b.y - b.h * 0.6 },
+                'T2': { cx: b.x + b.w * 0.6, cy: b.y + b.h * 0.6 },
+                'T3': { cx: b.x + b.w * 0.6, cy: b.y - b.h * 0.6 },
+                'T4': { cx: b.x - b.w * 0.6, cy: b.y + b.h * 0.6 },
+            };
+            const corner = corners[team];
+            if (corner) {
+                let tries = this.settings.worldSafeSpawnTries;
+                while (--tries >= 0) {
+                    const pos = {
+                        x: corner.cx + (Math.random() - 0.5) * b.w * 0.4,
+                        y: corner.cy + (Math.random() - 0.5) * b.h * 0.4
+                    };
+                    pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
+                    pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
+                    if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+                        return pos;
+                }
+            }
         }
-        let tries = this.settings.worldSafeSpawnTries;
-        while (--tries >= 0) {
-            const pos = this.getRandomPos(cellSize);
-            if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-                return pos;
-        }
-        return this.getRandomPos(cellSize);
     }
+
+    if (this.settings.worldMultiboxSpawnNear && player) {
+        const multiboxPos = this.getMultiboxPos(player, cellSize);
+        if (multiboxPos) return multiboxPos;
+    }
+    let tries = this.settings.worldSafeSpawnTries;
+    while (--tries >= 0) {
+        const pos = this.getRandomPos(cellSize);
+        if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
+            return pos;
+    }
+    return this.getRandomPos(cellSize);
+}
     /**
      * @param {Player} player
      * @param {number} cellSize
