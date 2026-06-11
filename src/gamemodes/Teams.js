@@ -78,7 +78,14 @@ class Teams extends Gamemode {
         const size = player.router.type === "minion" ?
             this.handle.settings.minionSpawnSize :
             this.handle.settings.playerSpawnSize;
-        const pos = player.world.getSafeSpawnPos(size, player);
+       let pos;
+if (player.team === 0) {
+    pos = { x: player.world.border.x + player.world.border.w / 2, y: player.world.border.y + player.world.border.h * 0.15 };
+} else if (player.team === 1) {
+    pos = { x: player.world.border.x + player.world.border.w / 2, y: player.world.border.y + player.world.border.h * 0.85 };
+} else {
+    pos = player.world.getSafeSpawnPos(size, player);
+}
         const color = player.router.separateInTeams ? getTeamColor(player.team) : Misc.randomColor();
         const name = player.router.spawningAttributes.name || player.leaderboardName || '';
         player.cellName = player.chatName = player.leaderboardName = name;
