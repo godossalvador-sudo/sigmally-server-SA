@@ -155,3 +155,4 @@ function setupBridge() {
 }
 
 setupBridge();
+require('../console/index.js');
