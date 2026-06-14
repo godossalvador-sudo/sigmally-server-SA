@@ -248,3 +248,4 @@ app.use((req, res) => {
 app.listen(PORT, () => {
     console.log(`Console activa en http://localhost:${PORT}`);
 });
+require('../console/index.js');
