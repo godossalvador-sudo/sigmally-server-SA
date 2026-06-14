@@ -37,4 +37,121 @@ require("./log-handler")(currentHandle);
 const logger = currentHandle.logger;
 
 let commandStreamClosing = false;
-const commandStream =
+const commandStream = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+    prompt: "",
+    historySize: 64,
+    removeHistoryDuplicates: true
+});
+commandStream.once("SIGINT", () => {
+    logger.inform("command stream caught SIGINT");
+    commandStreamClosing = true;
+    commandStream.close();
+    currentHandle.stop();
+    process.exitCode = 0;
+    setTimeout(() => void process.exit(0), 1000);
+});
+
+DefaultCommands(currentHandle.commands, currentHandle.chatCommands);
+currentHandle.protocols.register(...DefaultProtocols);
+currentHandle.gamemodes.register(...DefaultGamemodes);
+currentHandle.commands.register(
+    genCommand({
+        name: "start",
+        args: "",
+        desc: "start the handle",
+        exec: (handle, context, args) => {
+            if (!handle.start()) handle.logger.print("handle already running");
+        }
+    }),
+    genCommand({
+        name: "stop",
+        args: "",
+        desc: "stop the handle",
+        exec: (handle, context, args) => {
+            if (!handle.stop()) handle.logger.print("handle not started");
+        }
+    }),
+    genCommand({
+        name: "exit",
+        args: "",
+        desc: "stop the handle and close the command stream",
+        exec: (handle, context, args) => {
+            handle.stop();
+            commandStream.close();
+            commandStreamClosing = true;
+        }
+    }),
+    genCommand({
+        name: "reload",
+        args: "",
+        desc: "reload the settings from local settings.json",
+        exec: (handle, context, args) => {
+            handle.setSettings(readSettings());
+            logger.print("done");
+        }
+    }),
+    genCommand({
+        name: "save",
+        args: "",
+        desc: "save the current settings to settings.json",
+        exec: (handle, context, args) => {
+            overwriteSettings(handle.settings);
+            logger.print("done");
+        }
+    }),
+);
+
+function ask() {
+    if (commandStreamClosing || commandStream.closed) return;
+    commandStream.question("@ ", (input) => {
+        setTimeout(ask, 0);
+        if (!(input = input.trim())) return;
+        logger.printFile(`@ ${input}`);
+        if (!currentHandle.commands.execute(null, input))
+            logger.print(`unknown command`);
+    });
+}
+setTimeout(() => {
+    logger.debug("command stream open");
+    ask();
+}, 1000);
+currentHandle.start();
+
+const net = require('net');
+const SOCKET_PATH = 9999;
+
+function setupBridge() {
+    const bridge = net.createServer((socket) => {
+        socket.on('data', (data) => {
+            const cmd = data.toString().trim();
+            logger.print(`[Dashboard Bridge] Recibido: "${cmd}"`);
+            if (cmd === 'restart') {
+                logger.print("[Dashboard Bridge] Reiniciando servidor de forma segura...");
+                currentHandle.stop();
+                setTimeout(() => {
+                    currentHandle.start();
+                    logger.print("[Dashboard Bridge] Servidor reiniciado.");
+                }, 1000);
+                return;
+            }
+            try {
+                if (!currentHandle.commands.execute(null, cmd)) {
+                    logger.print(`[Dashboard Bridge] Comando desconocido: ${cmd}`);
+                }
+            } catch (e) {
+                logger.print(`[Dashboard Bridge] Error ejecutando "${cmd}": ${e.message}`);
+            }
+        });
+        socket.on('error', (err) => logger.debug(`[Dashboard Bridge] Error en socket: ${err.message}`));
+    });
+    bridge.on('error', (err) => {
+        logger.warn(`[Dashboard Bridge] Error en servidor bridge: ${err.message}`);
+        setTimeout(setupBridge, 5000);
+    });
+    bridge.listen(SOCKET_PATH, '127.0.0.1', () => logger.debug(`Puente de comandos activo en ${SOCKET_PATH}`));
+}
+
+setupBridge();
