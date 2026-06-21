@@ -56,7 +56,7 @@
     "listeningPort": 3000,
     "serverFrequency": 25,
     "serverName": "A sexy server",
-    "serverGamemode": "FFA",
+    "serverGamemode": "TEAMS",
     "serverPassword": "40",
     "// chat": "========== CHAT ==========",
     "chatEnabled": true,
