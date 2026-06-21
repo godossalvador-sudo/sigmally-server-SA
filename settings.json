@@ -56,7 +56,7 @@
     "listeningPort": 3000,
     "serverFrequency": 25,
     "serverName": "A sexy server",
-    "serverGamemode": "Teams",
+    "serverGamemode": "Last Man Standing",
     "serverPassword": "40",
     "// chat": "========== CHAT ==========",
     "chatEnabled": true,
