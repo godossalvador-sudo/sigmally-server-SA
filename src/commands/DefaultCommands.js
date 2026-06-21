@@ -496,6 +496,31 @@ module.exports = (commands, chatCommands) => {
             }
         }),
         genCommand({
+    name: "mergeall",
+    args: "<world id>",
+    desc: "instantly merge all players in a world",
+    exec: (handle, context, args) => {
+        const world = getWorldByID(args, handle, 0, false);
+        if (world === false) return;
+        const players = world.players;
+        let count = 0;
+        for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            if (player.state !== 0) continue;
+            const l = player.ownedCells.length;
+            if (l <= 1) continue;
+            let sqSize = 0;
+            for (let j = 0; j < l; j++) sqSize += player.ownedCells[j].squareSize;
+            player.ownedCells[0].squareSize = sqSize;
+            player.ownedCells[0].x = player.viewArea.x;
+            player.ownedCells[0].y = player.viewArea.y;
+            for (let j = 1; j < l; j++) player.world.removeCell(player.ownedCells[1]);
+            count++;
+        }
+        handle.logger.print(`merged ${count} players`);
+    }
+}),
+        genCommand({
             name: "kill",
             args: "<id>",
             desc: "instantly kill a player",
