@@ -77,7 +77,8 @@ class Teams extends Gamemode {
             pos = player.world.getSafeSpawnPos(size, player);
         }
         const color = player.router.separateInTeams ? getTeamColor(player.team) : Misc.randomColor();
-        const name = player.router.spawningAttributes.name || player.leaderboardName || '';
+       console.log("DEBUG spawningAttributes:", JSON.stringify(player.router.spawningAttributes));
+const name = player.router.spawningAttributes.name || player.leaderboardName || '';
         player.cellName = player.chatName = player.leaderboardName = name;
         player.cellSkin = null;
         player.chatColor = player.cellColor = color;
