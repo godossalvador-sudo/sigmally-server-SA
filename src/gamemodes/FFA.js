@@ -70,14 +70,10 @@ class FFA extends Gamemode {
         const player = connection.player;
         if (!player.hasWorld) return;
         if (player.world.frozen) return;
-        const leaderboard = player.world.leaderboard;
-        const data = leaderboard.map((v, i) => getLeaderboardData(v, player, i));
-        const selfData = isNaN(player.score) ? null : data[leaderboard.indexOf(player)];
-        connection.protocol.onLeaderboardUpdate("ffa", data.slice(0, 10), selfData);
-
         if (player.world.groupLeaderboard && player.world.groupLeaderboard.length > 0) {
             connection.protocol.onLeaderboardUpdate("pie", player.world.groupLeaderboard);
         }
+    }
     }
 }
 module.exports = FFA;
