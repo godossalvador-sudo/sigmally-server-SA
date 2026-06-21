@@ -1,11 +1,6 @@
 const Gamemode = require("./Gamemode");
 const Misc = require("../primitives/Misc");
 
-/**
- * @param {Player} player
- * @param {Player} requesting
- * @param {number} index
- */
 function getLeaderboardData(player, requesting, index) {
     return {
         name: player.leaderboardName,
@@ -16,20 +11,21 @@ function getLeaderboardData(player, requesting, index) {
     };
 }
 
+function getGroupTag(name) {
+    if (!name) return null;
+    const match = name.trim().match(/^([A-Za-z]+[0-9]*)\s+/);
+    return match ? match[1].toUpperCase() : null;
+}
+
+const groupColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF, 0xFFA500, 0xFFFFFF];
+
 class FFA extends Gamemode {
-    /**
-     * @param {ServerHandle} handle
-     */
     constructor(handle) {
         super(handle);
     }
-
     static get type() { return 0; }
     static get name() { return "FFA"; }
 
-    /**
-     * @param {Player} player
-     */
     onPlayerSpawnRequest(player) {
         if (player.state === 0 || !player.hasWorld) return;
         const size = player.router.type === "minion" ?
@@ -46,31 +42,45 @@ class FFA extends Gamemode {
         player.world.spawnPlayer(player, spawnInfo.pos, size);
     }
 
-    /**
-     * @param {World} world
-     */
     compileLeaderboard(world) {
         world.leaderboard = world.players.slice(0).filter((v) => !isNaN(v.score)).sort((a, b) => b.score - a.score);
+
+        const groups = {};
+        let totalScore = 0;
+        for (let i = 0; i < world.players.length; i++) {
+            const p = world.players[i];
+            if (isNaN(p.score)) continue;
+            const tag = getGroupTag(p.leaderboardName) || "Sin equipo";
+            if (!groups[tag]) groups[tag] = 0;
+            groups[tag] += p.score;
+            totalScore += p.score;
+        }
+        const groupEntries = Object.keys(groups)
+            .map((tag) => ({ tag, score: groups[tag] }))
+            .sort((a, b) => b.score - a.score);
+        world.groupLeaderboard = groupEntries.map((g, i) => ({
+            weight: totalScore > 0 ? g.score / totalScore : 0,
+            color: groupColors[i % groupColors.length],
+            tag: g.tag
+        }));
     }
 
-    /**
-     * @param {Connection} connection
-     */
     sendLeaderboard(connection) {
         if (!connection.hasPlayer) return;
         const player = connection.player;
         if (!player.hasWorld) return;
         if (player.world.frozen) return;
-        /** @type {Player[]} */
         const leaderboard = player.world.leaderboard;
         const data = leaderboard.map((v, i) => getLeaderboardData(v, player, i));
         const selfData = isNaN(player.score) ? null : data[leaderboard.indexOf(player)];
         connection.protocol.onLeaderboardUpdate("ffa", data.slice(0, 10), selfData);
+
+        if (player.world.groupLeaderboard && player.world.groupLeaderboard.length > 0) {
+            connection.protocol.onLeaderboardUpdate("pie", player.world.groupLeaderboard);
+        }
     }
 }
-
 module.exports = FFA;
-
 const ServerHandle = require("../ServerHandle");
 const World = require("../worlds/World");
 const Connection = require("../sockets/Connection");
