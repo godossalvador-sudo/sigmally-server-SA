@@ -73,8 +73,7 @@ class FFA extends Gamemode {
         if (player.world.groupLeaderboard && player.world.groupLeaderboard.length > 0) {
             connection.protocol.onLeaderboardUpdate("pie", player.world.groupLeaderboard);
         }
-    }
-    }
+    
 }
 module.exports = FFA;
 const ServerHandle = require("../ServerHandle");
