@@ -649,23 +649,28 @@ class World {
      * @param {PlayerCell} cell
      */
     autosplitPlayerCell(cell) {
-        const minSplit = this.settings.playerMaxSize * this.settings.playerMaxSize;
-        const cellsLeft = 1 + this.settings.playerMaxCells - cell.owner.ownedCells.length;
-        const overflow = Math.ceil(cell.squareSize / minSplit);
-        if (overflow === 1 || cellsLeft <= 0) return;
-        const splitTimes = Math.min(overflow, cellsLeft);
-        const splitSize = Math.min(Math.sqrt(cell.squareSize / splitTimes), this.settings.playerMaxSize);
-        for (let i = 1; i < splitTimes; i++) {
-            const angle = Math.random() * 2 * Math.PI;
-            this.launchPlayerCell(cell, splitSize, {
-                dx: Math.sin(angle),
-                dy: Math.cos(angle),
-                d: this.settings.playerSplitBoost
-            });
-        }
-        cell.size = splitSize;
-    }
+    const minSplit = this.settings.playerMaxSize * this.settings.playerMaxSize;
+    const cellsLeft = 1 + this.settings.playerMaxCells - cell.owner.ownedCells.length;
+    const overflow = Math.ceil(cell.squareSize / minSplit);
+    if (overflow === 1 || cellsLeft <= 0) return;
+    const splitTimes = Math.min(overflow, cellsLeft);
+    const splitSize = Math.min(Math.sqrt(cell.squareSize / splitTimes), this.settings.playerMaxSize);
 
+    let dx = cell.owner.router.mouseX - cell.x;
+    let dy = cell.owner.router.mouseY - cell.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 0) { dx /= dist; dy /= dist; }
+    else { dx = 0; dy = -1; }
+
+    for (let i = 1; i < splitTimes; i++) {
+        this.launchPlayerCell(cell, splitSize, {
+            dx: dx,
+            dy: dy,
+            d: this.settings.playerSplitBoost
+        });
+    }
+    cell.size = splitSize;
+}
     /**
      * @param {Player} player
      */
