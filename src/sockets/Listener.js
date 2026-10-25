@@ -1,3 +1,4 @@
+const http = require("http");
 const { WebSocket, WebSocketServer } = require("ws");
 
 const Connection = require("./Connection");
@@ -29,19 +30,60 @@ class Listener {
     open() {
         if (this.listenerSocket !== null) return false;
         this.logger.debug(`listener opening at ${this.settings.listeningPort}`);
+        this.httpServer = http.createServer(this.onHttpRequest.bind(this));
         this.listenerSocket = new WebSocketServer({
-            port: this.settings.listeningPort,
+            server: this.httpServer,
             verifyClient: this.verifyClient.bind(this)
-        }, this.onOpen.bind(this));
+        });
         this.listenerSocket.on("connection", this.onConnection.bind(this));
+        this.httpServer.listen(this.settings.listeningPort, this.onOpen.bind(this));
         return true;
     }
     close() {
         if (this.listenerSocket === null) return false;
         this.logger.debug("listener closing");
         this.listenerSocket.close();
+        this.httpServer.close();
         this.listenerSocket = null;
+        this.httpServer = null;
         return true;
+    }
+
+    /**
+     * HTTP endpoints the Sigmally web client calls before it lets you press Play
+     * @param {import("http").IncomingMessage} req
+     * @param {import("http").ServerResponse} res
+     */
+    onHttpRequest(req, res) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+        if (req.method === "OPTIONS") return void res.writeHead(204).end();
+        const url = (req.url || "").split("?")[0];
+        const json = (body) => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(body));
+        };
+        if (url.endsWith("/serversstats")) {
+            return void json({
+                status: "success",
+                body: {
+                    loginRequired: false,
+                    serverstats: {
+                        name: this.settings.serverName,
+                        mode: this.handle.gamemode ? this.handle.gamemode.name : "FFA",
+                        players_current: this.connections.length,
+                        players_max: this.settings.listenerMaxConnections
+                    }
+                }
+            });
+        }
+        if (url.endsWith("/recaptcha/v3")) {
+            if (req.method === "POST") return void json({ status: "complete" });
+            return void json({ version: "none" });
+        }
+        res.writeHead(426, { "Content-Type": "text/plain" });
+        res.end("Upgrade Required");
     }
 
     /**
