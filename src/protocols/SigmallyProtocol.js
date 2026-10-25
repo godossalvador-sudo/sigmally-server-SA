@@ -55,7 +55,6 @@ class SigmallyProtocol extends Protocol {
                 try {
                     const bodyString = reader.readZTStringUTF8();
                     body = JSON.parse(bodyString);
-                    console.log("BODY:", JSON.stringify(body));
                 } catch (_) {
                     return void this.fail(1003, "Unexpected message format");
                 }
