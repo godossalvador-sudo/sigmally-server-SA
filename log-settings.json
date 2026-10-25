@@ -10,11 +10,11 @@
         "FATAL": true
     },
     "showingFile": {
-        "PRINT": true,
-        "FILE": true,
-        "DEBUG": true,
-        "ACCESS": true,
-        "INFO": true,
+        "PRINT": false,
+        "FILE": false,
+        "DEBUG": false,
+        "ACCESS": false,
+        "INFO": false,
         "WARN": true,
         "ERROR": true,
         "FATAL": true
