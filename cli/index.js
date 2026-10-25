@@ -154,5 +154,7 @@ function setupBridge() {
     bridge.listen(SOCKET_PATH, '127.0.0.1', () => logger.debug(`Puente de comandos activo en ${SOCKET_PATH}`));
 }
 
-setupBridge();
-require('../console/index.js');
+if (process.env.ENABLE_CONSOLE) {
+    setupBridge();
+    require("../console/index.js");
+}
