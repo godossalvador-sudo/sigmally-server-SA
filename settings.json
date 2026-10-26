@@ -57,7 +57,7 @@
     "serverFrequency": 25,
     "serverName": "A sexy server",
     "serverGamemode": "FFA",
-    "serverPassword": "",
+    "serverPassword": "200",
     "// chat": "========== CHAT ==========",
     "chatEnabled": true,
     "chatFilteredPhrases": [],
