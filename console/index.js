@@ -53,6 +53,37 @@ function sendCommand(cmd) {
     });
 }
 
+// Lectura parcial del log: nunca leer el archivo entero (crece sin límite)
+function logSize() {
+    return fs.existsSync(LOG_FILE) ? fs.statSync(LOG_FILE).size : 0;
+}
+
+function readLogRange(start, end) {
+    if (end <= start) return '';
+    const fd = fs.openSync(LOG_FILE, 'r');
+    try {
+        const buf = Buffer.alloc(end - start);
+        fs.readSync(fd, buf, 0, buf.length, start);
+        return buf.toString('utf-8');
+    } finally {
+        fs.closeSync(fd);
+    }
+}
+
+// Lo que se escribió en el log desde `start` (máx. 2 MB)
+function readLogSince(start) {
+    const end = logSize();
+    return readLogRange(Math.max(start, end - 2 * 1024 * 1024), end);
+}
+
+// Las últimas `bytes` del log, sin la primera línea cortada
+function readLogTail(bytes) {
+    const end = logSize();
+    const start = Math.max(0, end - bytes);
+    const text = readLogRange(start, end);
+    return start > 0 ? text.slice(text.indexOf('\n') + 1) : text;
+}
+
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -171,7 +202,7 @@ app.get('/api/logs', auth, (req, res) => {
             return res.send("No hay logs disponibles.");
         }
         // Leer las últimas 100 líneas
-        const logs = fs.readFileSync(LOG_FILE, 'utf-8').split('\n').slice(-100).join('\n');
+        const logs = readLogTail(64 * 1024).split('\n').slice(-100).join('\n');
         res.send(logs);
     } catch (e) {
         res.status(500).send("Error leyendo logs: " + e.message);
@@ -184,11 +215,10 @@ app.get('/api/status', auth, (req, res) => {
 
 app.post('/api/players', auth, async (req, res) => {
     try {
-        const logBefore = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf-8').split('\n').length : 0;
+        const start = logSize();
         await sendCommand('players');
         await new Promise(r => setTimeout(r, 500));
-        const logs = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf-8') : '';
-        const lines = logs.split('\n').slice(logBefore - 2);
+        const lines = readLogSince(start).split(/\r?\n/);
         const players = [];
         for (const line of lines) {
             const match = line.match(/^\s*(\d+)\s*\|\s*(\d+)\s+\S+\s+(alive|spec|roam|idle)\s+([\d.]+)\s+(.+)$/);
@@ -204,12 +234,10 @@ app.post('/api/players', auth, async (req, res) => {
 
 app.post('/api/map-data', auth, async (req, res) => {
     try {
-        const logBefore = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf-8') : '';
-        const lineCountBefore = logBefore.split('\n').length;
+        const start = logSize();
         await sendCommand('mapdata');
         await new Promise(r => setTimeout(r, 500));
-        const logs = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf-8') : '';
-        const lines = logs.split('\n').slice(lineCountBefore - 2);
+        const lines = readLogSince(start).split('\n');
         for (const line of lines) {
             const idx = line.indexOf("MAPDATA:");
             if (idx !== -1) {
