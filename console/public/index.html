@@ -1039,6 +1039,11 @@
                     Logs en tiempo real
                 </div>
                 <div style="display:flex;gap:6px;">
+                    <span style="display:flex;gap:4px;align-items:center;font-size:10px;color:#9aa0b4;" title="Equipos por tag T1, T2, T3...">
+                        Masa <input id="team-mass" type="number" value="1000" min="1" style="width:64px;padding:3px 5px;background:#111;border:1px solid #333;color:#eee;border-radius:4px;">
+                        Separación <input id="team-gap" type="number" value="4000" min="100" style="width:64px;padding:3px 5px;background:#111;border:1px solid #333;color:#eee;border-radius:4px;">
+                    </span>
+                    <button class="btn-mass" style="padding:4px 12px;" onclick="ordenarEquipos()">⚑ Ordenar equipos</button>
                     <button class="btn-mass" style="padding:4px 12px;" onclick="showMassModal()">⊕ Gestionar masas</button>
                 </div>
             </div>
@@ -1544,6 +1549,18 @@
                     return;
                 }
             }
+        }
+
+        // Equipos: T1 a la izquierda, T2 a la derecha..., centrado y con poca masa
+        async function ordenarEquipos() {
+            const mass = Math.max(1, Number(document.getElementById('team-mass').value) || 1000);
+            const gap = Math.max(100, Number(document.getElementById('team-gap').value) || 4000);
+            await fetch('/api/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: `teams ${mass} ${gap}` })
+            });
+            showToast('Equipos ordenados (masa ' + mass + ')');
         }
 
         async function quickKill(playerId) {

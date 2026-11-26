@@ -15,6 +15,45 @@ const { fullyIntersects } = require("../primitives/Misc");
 /**
  * @implements {Spawner}
  */
+/**
+ * Número de equipo por el tag de Sigmally (clan) "T1", "T2"... o un nombre que empiece así ("T1 Godos", "[T2] Pepe"). 0 = sin equipo.
+ * @param {Player} player
+ */
+function getTeamNumber(player) {
+    if (!player) return 0;
+    const attrs = player.router && player.router.spawningAttributes;
+    const re = /^\s*[\[(]?\s*t(\d{1,3})(?![a-z0-9])/i;
+    const clan = String((attrs && attrs.clan) || player.clan || "");
+    let m = re.exec(clan);
+    if (m) return Number(m[1]);
+    m = re.exec(String((attrs && attrs.name) || player.cellName || player.leaderboardName || ""));
+    return m ? Number(m[1]) : 0;
+}
+
+/** Colores fijos por equipo: T1 rojo, T2 azul, T3 verde, T4 amarillo... */
+const TEAM_COLORS = [0xff3b3b, 0x3b7bff, 0x3bdc5a, 0xffd23b, 0xb13bff, 0xff8a1f, 0x1fe0e0, 0xff4fc8];
+function getTeamColor(team) {
+    return team > 0 ? TEAM_COLORS[(team - 1) % TEAM_COLORS.length] : null;
+}
+
+/**
+ * Centro X de cada equipo: ordenados T1, T2, T3... de izquierda a derecha, centrados en el mapa.
+ * @param {number[]} teams
+ * @param {Rect} border
+ * @param {number} cellSize
+ * @param {number} wantedGap
+ * @returns {Map<number, number>}
+ */
+function getTeamCenters(teams, border, cellSize, wantedGap) {
+    const order = teams.slice().sort((a, b) => a - b);
+    const margin = cellSize * 2 + 200;
+    const usableW = Math.max(0, border.w * 2 - margin * 2);
+    const gap = order.length > 1 ? Math.min(wantedGap, usableW / (order.length - 1)) : 0;
+    const centers = new Map();
+    order.forEach((team, index) => centers.set(team, border.x + (index - (order.length - 1) / 2) * gap));
+    return centers;
+}
+
 class World {
     /**
      * @param {ServerHandle} handle
@@ -205,71 +244,41 @@ class World {
      * @returns {Point}
      */
     getSafeSpawnPos(cellSize, player) {
-        if (player && player.router && player.router.spawningAttributes) {
-            const name = (player.router.spawningAttributes && player.router.spawningAttributes.name) 
-    || (player.leaderboardName) 
-    || (player.cellName) 
-    || '';
-            const teamMatch = name.match(/^[Tt](\d+)/);
-            if (teamMatch) {
-                const teamNum = parseInt(teamMatch[1]); // T1=1, T2=2, T9=9, T22=22 etc
-                const b = this.border;
-
-                // Dividir el mapa en cuadrícula 4x4 = 16 zonas máximo
-                // Cada equipo ocupa una celda de la cuadrícula según su número
-                const cols = 4;
-                const rows = 4;
-                const idx = (teamNum - 1) % (cols * rows); // 0-based, se repite si hay más de 16 equipos
-                const col = idx % cols;
-                const row = Math.floor(idx / cols);
-
-                // Tamaño de cada zona
-                const zoneW = (b.w * 2) / cols;
-                const zoneH = (b.h * 2) / rows;
-
-                // Centro de la zona de este equipo
-                const cx = (b.x - b.w) + zoneW * col + zoneW / 2;
-                const cy = (b.y - b.h) + zoneH * row + zoneH / 2;
-
-                // Primero intentar spawn cerca del multibox dentro de la zona
-                if (this.settings.worldMultiboxSpawnNear) {
-                    const ip = player.router.remoteAddress;
-                    const candidates = this.players.filter(p => {
-                        if (p === player || p.ownedCells.length === 0) return false;
-                        return !!(ip && ip !== '127.0.0.1' && p.router.remoteAddress === ip);
-                    });
-                    if (candidates.length > 0) {
-                        let tries = this.settings.worldSafeSpawnTries;
-                        while (--tries >= 0) {
-                            const other = candidates[~~(Math.random() * candidates.length)];
-                            const cell = other.ownedCells[~~(Math.random() * other.ownedCells.length)];
-                            const angle = Math.random() * Math.PI * 2;
-                            const dist = cell.size + cellSize + 60 + Math.random() * 10;
-                            const pos = {
-                                x: cell.x + Math.cos(angle) * dist,
-                                y: cell.y + Math.sin(angle) * dist
-                            };
-                            pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
-                            pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
-                            if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-                                return pos;
-                        }
+        // Equipos por tag T1, T2, T3...: aparecer pegado a un compañero, o en la zona del equipo
+        const team = getTeamNumber(player);
+        if (team > 0) {
+            const b = this.border;
+            let anchorCell = null;
+            for (const mate of this.players) {
+                if (mate === player || mate.ownedCells.length === 0 || getTeamNumber(mate) !== team) continue;
+                for (const cell of mate.ownedCells)
+                    if (anchorCell === null || cell.size > anchorCell.size) anchorCell = cell;
+            }
+            if (anchorCell !== null) {
+                for (let ring = 0; ring < 4; ring++) {
+                    const radius = anchorCell.size + cellSize + 20 + ring * cellSize;
+                    const offset = Math.random() * Math.PI * 2;
+                    for (let i = 0; i < 12; i++) {
+                        const angle = offset + i * (Math.PI / 6);
+                        const x = Math.max(b.x - b.w + cellSize, Math.min(b.x + b.w - cellSize, anchorCell.x + Math.cos(angle) * radius));
+                        const y = Math.max(b.y - b.h + cellSize, Math.min(b.y + b.h - cellSize, anchorCell.y + Math.sin(angle) * radius));
+                        if (this.isSafeSpawnPos({ x, y, w: cellSize, h: cellSize })) return { x, y };
                     }
                 }
-
-                // Spawn en la zona del equipo
-                let tries = this.settings.worldSafeSpawnTries;
-                while (--tries >= 0) {
-                    const pos = {
-                        x: cx + (Math.random() - 0.5) * zoneW * 0.8,
-                        y: cy + (Math.random() - 0.5) * zoneH * 0.8
-                    };
-                    pos.x = Math.max(b.x - b.w + cellSize, Math.min(pos.x, b.x + b.w - cellSize));
-                    pos.y = Math.max(b.y - b.h + cellSize, Math.min(pos.y, b.y + b.h - cellSize));
-                    if (this.isSafeSpawnPos({ x: pos.x, y: pos.y, w: cellSize, h: cellSize }))
-                        return pos;
-                }
             }
+            // Zona del equipo: T1 a la izquierda, luego T2, T3... centrado en el mapa
+            const present = new Set([team]);
+            for (const other of this.players)
+                if (other.ownedCells.length > 0) { const t = getTeamNumber(other); if (t > 0) present.add(t); }
+            const centers = getTeamCenters(Array.from(present), b, cellSize, this.settings.worldTeamGap || 4000);
+            const cx = centers.get(team), cy = b.y;
+            let tries = this.settings.worldSafeSpawnTries;
+            while (--tries >= 0) {
+                const x = Math.max(b.x - b.w + cellSize, Math.min(b.x + b.w - cellSize, cx + (Math.random() - 0.5) * 800));
+                const y = Math.max(b.y - b.h + cellSize, Math.min(b.y + b.h - cellSize, cy + (Math.random() - 0.5) * 800));
+                if (this.isSafeSpawnPos({ x, y, w: cellSize, h: cellSize })) return { x, y };
+            }
+            return { x: cx, y: cy };
         }
         if (this.settings.worldMultiboxSpawnNear && player) {
             const multiboxPos = this.getMultiboxPos(player, cellSize);
@@ -799,6 +808,10 @@ class World {
         this.stats.uptime = Math.floor((Date.now() - this.handle.startTime.getTime()) / 1000);
     }
 }
+
+World.getTeamNumber = getTeamNumber;
+World.getTeamColor = getTeamColor;
+World.getTeamCenters = getTeamCenters;
 
 module.exports = World;
 
